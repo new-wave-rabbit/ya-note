@@ -78,3 +78,18 @@ class TestRoutes(TestCase):
                 url = reverse(name, args=args)
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_redirect_for_anonymous_client(self):
+        login_url = reverse('users:login')
+        urls = (
+            'notes:detail',
+            'notes:edit',
+            'notes:delete'
+        )
+        for name in urls:
+            with self.subTest(name=name):
+                # Получаем адрес страницы редактирования или удаления комментария:
+                url = reverse(name, args=(self.note.slug,))
+                redirect_url = f'{login_url}?next={url}'
+                response = self.client.get(url)
+                self.assertRedirects(response, redirect_url)
