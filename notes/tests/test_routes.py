@@ -33,6 +33,8 @@ class TestRoutes(TestCase):
     def test_pages_availability(self):
         urls = (
             ('notes:home', None),
+            ('users:login', None),
+            ('users:signup', None),
         )
 
         for name, args in urls:
