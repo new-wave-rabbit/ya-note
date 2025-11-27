@@ -9,7 +9,9 @@ from django.urls import reverse
 
 from notes.models import Note
 
-TEST_USER = 'testuser'
+User = get_user_model()
+TEST_USER_1 = 'testuser_1'
+TEST_USER_2 = 'testuser_2'
 TEST_PASSWORD = 'password123'
 
 class TestRoutes(TestCase):
@@ -17,19 +19,18 @@ class TestRoutes(TestCase):
     @classmethod
     def setUpTestData(cls):
         # Создаём пользователя
-        cls.user = get_user_model().objects.create_user(
-            username=TEST_USER,
-            password=TEST_PASSWORD
-        )
+        
+        cls.user_1 = User.objects.create(username=TEST_USER_1)
+        cls.user_2 = User.objects.create(username=TEST_USER_2)
 
         cls.note = Note.objects.create(
             title='Заголовок',
             text='Текст',
             slug='test-slug',
-            author=cls.user,
+            author=cls.user_1,
         )
 
-
+    # Не авторизованный пользователь должен получать статус 200
     def test_pages_availability(self):
         urls = (
             ('notes:home', None),
@@ -43,13 +44,37 @@ class TestRoutes(TestCase):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
-    def test_detail_page_as_author(self):
-        # Логинимся под созданным пользователем
-        self.client.login(username=TEST_USER, password=TEST_PASSWORD)
+    # Автор должен иметь доступ к редактированию и удалению своей заметки
+    def test_availability_for_note_view_edit_and_delete(self):
+        users_statuses = (
+            (self.user_1, HTTPStatus.OK),
+            (self.user_2, HTTPStatus.NOT_FOUND),
+        )
+        urls = (
+            ('notes:detail', (self.note.slug,)),
+            ('notes:edit', (self.note.slug,)),
+            ('notes:delete', (self.note.slug,)),
+        )
 
-        url = reverse('notes:detail', args=(self.note.slug,))
-        response = self.client.get(url)
+        for user, status in users_statuses:
+            self.client.force_login(user)
+            for name, args in urls:
+                with self.subTest(name=name):
+                    url = reverse(name, args=args)
+                    response = self.client.get(url)
+                    self.assertEqual(response.status_code, status)
 
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-        # Дополнительно можно проверить, что в контексте вернулась именно эта заметка
-        self.assertEqual(response.context['note'], self.note)
+    # Авторизоанный пользователь должен получать статус 200
+    def test_pages_availability_for_authorized(self):
+        urls = (
+            ('notes:add', None),
+            ('notes:list', None),
+            ('notes:success', None),
+        )
+        self.client.force_login(self.user_1)
+
+        for name, args in urls:
+            with self.subTest(name=name):
+                url = reverse(name, args=args)
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
