@@ -2,6 +2,7 @@
 # Импортируем класс HTTPStatus.
 from http import HTTPStatus
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 # Импортируем функцию reverse().
@@ -80,7 +81,7 @@ class TestRoutes(TestCase):
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_redirect_for_anonymous_client(self):
-        login_url = reverse('users:login')
+        login_url = reverse(settings.LOGIN_URL)
         urls = (
             'notes:detail',
             'notes:edit',
