@@ -81,7 +81,7 @@ class TestRoutes(TestCase):
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_redirect_for_anonymous_client(self):
-        login_url = reverse(settings.LOGIN_URL)
+        login_url = settings.LOGIN_URL
         urls = (
             'notes:detail',
             'notes:edit',
