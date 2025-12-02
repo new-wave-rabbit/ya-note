@@ -9,6 +9,10 @@ from notes.models import Note
 # Импортируем функции для проверки редиректа и ошибки формы:
 from pytest_django.asserts import assertRedirects, assertFormError
 
+# Допишите импорт класса со статусами HTTP-ответов.
+from http import HTTPStatus
+
+
 # Импортируем из модуля forms сообщение об ошибке:
 from notes.forms import WARNING
 # Дополнительно импортируем функцию slugify.
@@ -90,4 +94,16 @@ def test_author_can_edit_note(author_client, form_data, note):
     # Проверяем, что атрибуты заметки соответствуют обновлённым:
     assert note.title == form_data['title']
     assert note.text == form_data['text']
-    assert note.slug == form_data['slug'] 
+    assert note.slug == form_data['slug']
+
+def test_other_user_cant_edit_note(not_author_client, form_data, note):
+    url = reverse('notes:edit', args=(note.slug,))
+    response = not_author_client.post(url, form_data)
+    # Проверяем, что страница не найдена:
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    # Получаем новый объект запросом из БД.
+    note_from_db = Note.objects.get(id=note.id)
+    # Проверяем, что атрибуты объекта из БД равны атрибутам заметки до запроса.
+    assert note.title == note_from_db.title
+    assert note.text == note_from_db.text
+    assert note.slug == note_from_db.slug 
