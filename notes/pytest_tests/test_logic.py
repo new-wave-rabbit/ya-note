@@ -74,4 +74,20 @@ def test_empty_slug(author_client, form_data):
     # Формируем ожидаемый slug:
     expected_slug = slugify(form_data['title'])
     # Проверяем, что slug заметки соответствует ожидаемому:
-    assert new_note.slug == expected_slug 
+    assert new_note.slug == expected_slug
+
+# В параметрах вызвана фикстура note: значит, в БД создана заметка.
+def test_author_can_edit_note(author_client, form_data, note):
+    # Получаем адрес страницы редактирования заметки:
+    url = reverse('notes:edit', args=(note.slug,))
+    # В POST-запросе на адрес редактирования заметки
+    # отправляем form_data - новые значения для полей заметки:
+    response = author_client.post(url, form_data)
+    # Проверяем редирект:
+    assertRedirects(response, reverse('notes:success'))
+    # Обновляем объект заметки note: получаем обновлённые данные из БД:
+    note.refresh_from_db()
+    # Проверяем, что атрибуты заметки соответствуют обновлённым:
+    assert note.title == form_data['title']
+    assert note.text == form_data['text']
+    assert note.slug == form_data['slug'] 
