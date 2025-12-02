@@ -1,10 +1,16 @@
 # test_logic.py
+import pytest
 from pytest_django.asserts import assertRedirects
 
 from django.urls import reverse
 
 from notes.models import Note
-import pytest
+
+# Импортируем функции для проверки редиректа и ошибки формы:
+from pytest_django.asserts import assertRedirects, assertFormError
+
+# Импортируем из модуля forms сообщение об ошибке:
+from notes.forms import WARNING
 
 
 # Указываем фикстуру form_data в параметрах теста.
@@ -40,4 +46,16 @@ def test_anonymous_user_cant_create_note(client, form_data):
     # Проверяем, что произошла переадресация на страницу логина:
     assertRedirects(response, expected_url)
     # Считаем количество заметок в БД, ожидаем 0 заметок.
-    assert Note.objects.count() == 0 
+    assert Note.objects.count() == 0
+
+# Вызываем фикстуру отдельной заметки, чтобы в базе появилась запись.
+def test_not_unique_slug(author_client, note, form_data):
+    url = reverse('notes:add')
+    # Подменяем slug новой заметки на slug уже существующей записи:
+    form_data['slug'] = note.slug
+    # Пытаемся создать новую заметку:
+    response = author_client.post(url, data=form_data)
+    # Проверяем, что в ответе содержится ошибка формы для поля slug:
+    assertFormError(response.context['form'], 'slug', errors=(note.slug + WARNING))
+    # Убеждаемся, что количество заметок в базе осталось равным 1:
+    assert Note.objects.count() == 1
