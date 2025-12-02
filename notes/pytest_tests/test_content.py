@@ -26,22 +26,23 @@ def test_notes_list_for_different_users(
     assert (note in object_list) is note_in_list
 
 
-def test_create_note_page_contains_form(author_client):
-    url = reverse('notes:add')
-    # Запрашиваем страницу создания заметки:
+@pytest.mark.parametrize(
+    # В качестве параметров передаём name и args для reverse.
+    'name, args',
+    (
+        # Для тестирования страницы создания заметки 
+        # никакие дополнительные аргументы для reverse() не нужны.
+        ('notes:add', None),
+        # Для тестирования страницы редактирования заметки нужен slug заметки.
+        ('notes:edit', pytest.lazy_fixture('slug_for_args'))
+    )
+)
+def test_pages_contains_form(author_client, name, args):
+    # Формируем URL.
+    url = reverse(name, args=args)
+    # Запрашиваем нужную страницу:
     response = author_client.get(url)
-    # Проверяем, есть ли объект form в словаре контекста:
-    assert 'form' in response.context
-    # Проверяем, что объект формы относится к нужному классу.
-    assert isinstance(response.context['form'], NoteForm)
-
-
-# В параметры теста передаём фикстуру slug_for_args и клиент с автором заметки:
-def test_edit_note_page_contains_form(slug_for_args, author_client):
-    url = reverse('notes:edit', args=slug_for_args)
-    # Запрашиваем страницу редактирования заметки:
-    response = author_client.get(url)
-    # Проверяем, есть ли объект form в словаре контекста:
+    # Проверяем, есть ли объект формы в словаре контекста:
     assert 'form' in response.context
     # Проверяем, что объект формы относится к нужному классу.
     assert isinstance(response.context['form'], NoteForm) 
