@@ -106,4 +106,17 @@ def test_other_user_cant_edit_note(not_author_client, form_data, note):
     # Проверяем, что атрибуты объекта из БД равны атрибутам заметки до запроса.
     assert note.title == note_from_db.title
     assert note.text == note_from_db.text
-    assert note.slug == note_from_db.slug 
+    assert note.slug == note_from_db.slug
+
+def test_author_can_delete_note(author_client, slug_for_args):
+    url = reverse('notes:delete', args=slug_for_args)
+    response = author_client.post(url)
+    assertRedirects(response, reverse('notes:success'))
+    assert Note.objects.count() == 0
+
+
+def test_other_user_cant_delete_note(not_author_client, slug_for_args):
+    url = reverse('notes:delete', args=slug_for_args)
+    response = not_author_client.post(url)
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert Note.objects.count() == 1 
